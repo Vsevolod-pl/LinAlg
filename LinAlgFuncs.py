@@ -101,6 +101,10 @@ class Tensor(list):
         else:
             return Tensor([self[i].__add__(a[i]) for i in range(a_shape[0])])
 
+    def __sub__(self, other):
+        return self+-1*other
+    def __rsub__(self, other):
+        return other+-1*self
     def __mul__(self, m):
         shape = self.shape()
         if len(shape) == 1:
