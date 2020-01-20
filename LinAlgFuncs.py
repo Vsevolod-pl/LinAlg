@@ -1,4 +1,6 @@
 from collections.abc import Iterable
+from fractions import Fraction
+
 
 def mul(a):
     m = 1
@@ -103,8 +105,10 @@ class Tensor(list):
 
     def __sub__(self, other):
         return self+-1*other
+
     def __rsub__(self, other):
         return other+-1*self
+
     def __mul__(self, m):
         shape = self.shape()
         if len(shape) == 1:
@@ -146,8 +150,8 @@ class Tensor(list):
 
     def tr2(self):
         res = 0
-        l = min(self.shape())
-        for i in range(l):
+        dim = min(self.shape())
+        for i in range(dim):
             res += self[i, i]
         return res
 
@@ -167,7 +171,6 @@ def to_triangular(a):
     a = a.copy()
 
     n = a.shape()[0]
-    #assert n == a.shape()[1]
 
     for i in range(n - 1):
         a0 = a[i, i]
@@ -227,59 +230,31 @@ def det_by_minors(a, j=0):
     n = a.shape()[0]
     assert n == a.shape()[1]
     if n == 1:
-        return a[0,0]
+        return a[0, 0]
     elif n == 2:
-        return a[0,0]*a[1,1] - a[1,0]*a[0,1]
+        return a[0, 0]*a[1, 1] - a[1, 0]*a[0, 1]
     elif n == 3:
-        return a[0,0]*a[1,1]*a[2,2]+a[0,1]*a[1,2]*a[2,0]+a[0,2]*a[1,0]*a[2,1]-a[0,2]*a[1,1]*a[2,0]-a[0,1]*a[1,0]*a[2,2]-a[0,0]*a[1,2]*a[2,1]
+        return a[0, 0]*a[1, 1]*a[2, 2]+a[0, 1]*a[1, 2]*a[2, 0]+a[0, 2]*a[1, 0]*a[2, 1]-a[0, 2]*a[1, 1]*a[2, 0]\
+               - a[0, 1]*a[1, 0]*a[2, 2]-a[0, 0]*a[1, 2]*a[2, 1]
     else:
         res = 0
         for i in range(n):
-            res += a[i,j] * ((-1)**(i+j)) * det_by_minors(cut_ij(a, i, j))
+            res += a[i, j] * ((-1)**(i+j)) * det_by_minors(cut_ij(a, i, j))
         return res
 
 
-def inverse_Gauss(a):
+def inverse_Gauss(a, use_fractional=False):
     n = a.shape()[0]
     assert n == a.shape()[1]
     e = I(n)
-    a = a.copy()
+    return solve_Gauss(a, e, use_fractional)
 
-    ##################################
-    for i in range(n - 1):
-        a0 = a[i, i]
-        if a0 == 0:
-            for j in range(i + 1, n):
-                if a[j, i] != 0:
-                    a[i], a[j] = a[j], a[i]
-                    e[i], e[j] = e[j], e[i]
-                    break
-            a0 = a[i, i]
 
-        for j in range(i + 1, n):
-            a1 = a[j, i]
-            e[j] = e[j] + e[i] * (-a1 / a0)
-            a[j] = a[j] + a[i] * (-a1 / a0)
-    ##################################
-    for i in range(n - 1, 0, -1):
-        a0 = a[i, i]
-        for j in range(i - 1, -1, -1):
-            a1 = a[j, i]
-            e[j] = e[j] + e[i] * (-a1 / a0)
-            a[j] = a[j] + a[i] * (-a1 / a0)
-    ##################################
-    for i in range(n):
-        e[i] *= 1 / a[i, i]
-        a[i] *= 1 / a[i, i]
-
-    return e
-
-def solve_Gauss(a, b):
+def solve_Gauss(a, b, use_fractional=False):
     n = a.shape()[0]
     assert n == a.shape()[1]
     e = b.copy()
     a = a.copy()
-
     ##################################
     for i in range(n - 1):
         a0 = a[i, i]
@@ -293,20 +268,31 @@ def solve_Gauss(a, b):
 
         for j in range(i + 1, n):
             a1 = a[j, i]
-            e[j] = e[j] + e[i] * (-a1 / a0)
-            a[j] = a[j] + a[i] * (-a1 / a0)
+            if use_fractional:
+                e[j] = e[j] + e[i] * Fraction(-a1, a0)
+                a[j] = a[j] + a[i] * Fraction(-a1, a0)
+            else:
+                e[j] = e[j] + e[i] * (-a1 / a0)
+                a[j] = a[j] + a[i] * (-a1 / a0)
     ##################################
     for i in range(n - 1, 0, -1):
         a0 = a[i, i]
         for j in range(i - 1, -1, -1):
             a1 = a[j, i]
-            e[j] = e[j] + e[i] * (-a1 / a0)
-            a[j] = a[j] + a[i] * (-a1 / a0)
+            if use_fractional:
+                e[j] = e[j] + e[i] * Fraction(-a1, a0)
+                a[j] = a[j] + a[i] * Fraction(-a1, a0)
+            else:
+                e[j] = e[j] + e[i] * (-a1 / a0)
+                a[j] = a[j] + a[i] * (-a1 / a0)
     ##################################
     for i in range(n):
-        e[i] *= 1 / a[i, i]
-        a[i] *= 1 / a[i, i]
-
+        if use_fractional:
+            e[i] *= Fraction(1, a[i, i])
+            a[i] *= Fraction(1, a[i, i])
+        else:
+            e[i] *= 1 / a[i, i]
+            a[i] *= 1 / a[i, i]
     return e
 
 
