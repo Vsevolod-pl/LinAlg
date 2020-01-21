@@ -46,8 +46,6 @@ class Variable:
         elif isinstance(other, ExpressionSum):
             return other.__mul__(self)
         else:
-            #print(type(other))
-            #print(isinstance(other, Variable))
             raise NotImplementedError
 
     __rmul__ = __mul__

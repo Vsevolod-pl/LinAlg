@@ -1,5 +1,13 @@
 from collections.abc import Iterable
 from fractions import Fraction
+from random import randint
+
+
+def random_tensor(*shape, minval=-5, maxval=5):
+    if len(shape) == 1:
+        return Tensor([randint(minval, maxval) for i in range(shape[0])])
+    else:
+        return Tensor([random_tensor(*shape[1:]) for i in range(shape[0])])
 
 
 def mul(a):
@@ -73,7 +81,7 @@ class Tensor(list):
             return self
 
     def __repr__(self, maxLenItem = None, tab=None):
-        maxlitem = maxLenItem if maxLenItem is not None else max([len(str(i)) for i in self.to_list1()])
+        maxlitem = maxLenItem if maxLenItem is not None else max([len(str(i)) for i in self.flatten_to_list()])
         tab = tab if tab is not None else 0
         if len(self.shape()) == 1:
             return " "*tab + "["+", ".join([str(i)
@@ -155,21 +163,20 @@ class Tensor(list):
             res += self[i, i]
         return res
 
-    def to_list1(self):
+    def flatten_to_list(self):
         if len(self.shape()) == 1:
             return [i for i in self]
         else:
             res = []	
             for i in self:
-                res += i.to_list1()
+                res += i.flatten_to_list()
             return res
 
 
-def to_triangular(a):
+def to_triangular(a, use_fractional=False):
     success = True
     permutations = 0
     a = a.copy()
-
     n = a.shape()[0]
 
     for i in range(n - 1):
@@ -190,7 +197,10 @@ def to_triangular(a):
 
         for j in range(i + 1, n):
             a1 = a[j, i]
-            a[j] = a[j] + a[i] * (-a1 / a0)
+            if use_fractional:
+                a[j] = a[j] + a[i] * Fraction(-a1, a0)
+            else:
+                a[j] = a[j] + a[i] * (-a1 / a0)
     return a, permutations, success
 
 
@@ -246,6 +256,8 @@ def det_by_minors(a, j=0):
 def inverse_Gauss(a, use_fractional=False):
     n = a.shape()[0]
     assert n == a.shape()[1]
+    det_a = det(a)
+    assert det_a != 0
     e = I(n)
     return solve_Gauss(a, e, use_fractional)
 
@@ -301,3 +313,40 @@ def tensor_from_iterable(source):
         return Tensor([tensor_from_iterable(i) for i in source])
     else:
         return Tensor(source)
+
+
+def rref(m, use_fractional=True, transpositions_allowed=True):
+    """
+    Reduced row echelon form
+    :param m:
+    :param use_fractional: if in matrix there are only int numbers, it may provide better precision
+    :param transpositions_allowed: don't use transpositions
+    :return: return matrix in Reduced row echelon form
+    """
+    if not transpositions_allowed:
+        raise NotImplementedError()
+    m = m.copy()
+    dim1 = m.shape()[0]
+    dim2 = m.shape()[1]
+    for i in range(dim1):
+        first = 0
+        ind = 0
+
+        for j in range(dim2):
+            if m[i, j] != 0:
+                first = m[i, j]
+                ind = j
+
+        for j in range(dim2):
+            if m[i, j] != 0:
+                if use_fractional:
+                    m[i, j] = Fraction(m[i, j], first)
+                else:
+                    m[i, j] /= first
+        if not first:
+            continue
+
+        for j in range(dim1):
+            if j != i:
+                m[j] = m[j] - m[i]*m[j, ind]
+    return m
