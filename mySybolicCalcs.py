@@ -4,7 +4,9 @@ from numbers import Number
 class Variable:
     def __init__(self, name, mult=1, p=1):
         self.name = name
+        assert isinstance(mult, Number)
         self.mult = mult
+        assert isinstance(p, Number)
         self.pow = p
 
     def __eq__(self, other):
@@ -42,6 +44,7 @@ class Variable:
             if other.name == self.name:
                 return Variable(self.name, self.mult * other.mult, self.pow + other.pow)
             else:
+                return ExpressionMul([self,other])
                 raise NotImplementedError
         elif isinstance(other, ExpressionSum):
             return other.__mul__(self)
@@ -160,7 +163,7 @@ class ExpressionSum:
 
 
 class ExpressionMul:
-    def __init__(self, variables, const, cast_to_normal=True):
+    def __init__(self, variables, const=1, cast_to_normal=True):
         self.vars = variables
         self.const = const
         if cast_to_normal:
