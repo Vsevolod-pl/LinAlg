@@ -3,7 +3,7 @@ from fractions import Fraction
 from random import randint
 
 
-def random_tensor(*shape, minval=-5, maxval=5):
+def random_tensor(shape, minval=-5, maxval=5):
     if len(shape) == 1:
         return Tensor([randint(minval, maxval) for i in range(shape[0])])
     else:
@@ -24,7 +24,7 @@ def zeros(*shape):
         return Tensor([zeros(*shape[1:]) for i in range(shape[0])])
 
 
-def dot_v(a,b):
+def dot_v(a, b):
     if a.shape() == b.shape() and len(a.shape()) == 1:
         return sum([a[i]*b[i] for i in range(len(a))])
 
@@ -37,15 +37,16 @@ def I(n):
 
 
 def dot_m(a, b):
-    if a.shape()[1] == b.shape()[0] and len(a.shape()) == 2:
-        bt = b.transpose2()
-        width = a.shape()[0]
-        height = b.shape()[1]
-        res = zeros(width, height)
-        for i in range(width):
-            for j in range(height):
-                res[i, j] = dot_v(a[i], bt[j])
-        return res
+    assert a.shape()[1] == b.shape()[0], "Matrices must be same size"
+    assert len(a.shape()) == 2, "Must be 2D Matrix"
+    bt = b.transpose2()
+    width = a.shape()[0]
+    height = b.shape()[1]
+    res = zeros(width, height)
+    for i in range(width):
+        for j in range(height):
+            res[i, j] = dot_v(a[i], bt[j])
+    return res
 
 
 class Tensor(list):
