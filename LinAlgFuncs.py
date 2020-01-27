@@ -104,7 +104,7 @@ class Tensor(list):
         my_shape = self.shape()
         a_shape = a.shape()
 
-        assert a_shape == my_shape
+        assert a_shape == my_shape, "Second tensor must be same size"
 
         if len(a_shape) == 1:
             return Tensor([self[i] + a[i] for i in range(a_shape[0])])
@@ -206,7 +206,7 @@ def to_triangular(a, use_fractional=False):
 
 def det_triangular(a, s=0):
     n = a.shape()[0]
-    assert n == a.shape()[1]
+    assert n == a.shape()[1], "Need square Matrix"
     res = 1
     for i in range(n):
         res *= a[i, i]
@@ -238,7 +238,7 @@ def cut_ij(mat, i, j):
 
 def det_by_minors(a, j=0):
     n = a.shape()[0]
-    assert n == a.shape()[1]
+    assert n == a.shape()[1], "Need square Matrix"
     if n == 1:
         return a[0, 0]
     elif n == 2:
@@ -255,16 +255,16 @@ def det_by_minors(a, j=0):
 
 def inverse_Gauss(a, use_fractional=False):
     n = a.shape()[0]
-    assert n == a.shape()[1]
+    assert n == a.shape()[1], "Need square Matrix"
     det_a = det(a)
-    assert det_a != 0
+    assert det_a != 0, "Can't invert Matrix with zero determinant"
     e = I(n)
     return solve_Gauss(a, e, use_fractional)
 
 
 def solve_Gauss(a, b, use_fractional=False):
     n = a.shape()[0]
-    assert n == a.shape()[1]
+    assert n == a.shape()[1], "Need square Matrix"
     e = b.copy()
     a = a.copy()
     ##################################
