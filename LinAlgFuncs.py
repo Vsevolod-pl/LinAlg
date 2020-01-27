@@ -285,6 +285,8 @@ def inverse_Gauss(a, use_fractional=False):
 def solve_Gauss(a, b, use_fractional=False):
     n = a.shape()[0]
     assert n == a.shape()[1], "Need square Matrix"
+    det_a = det(a)
+    assert det_a != 0, "Can't invert Matrix with zero determinant"
     e = b.copy()
     a = a.copy()
     ##################################
@@ -404,11 +406,23 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True):
     for i, row in enumerate(matrix_rref.transpose2()):
         for j, el in enumerate(row):
             if el == 1:
-                not_free.append((j, i))
+
+                first = True
+                for k in range(i):
+                    if matrix_rref[j][k] != 0:
+                        first = False
+                        break
+
+                if first:
+                    not_free.append((j, i))
+                    break
+                else:
+                    free_vars.append(i)
+                    break
             elif el != 0:
                 free_vars.append(i)
                 break
-
+    print(not_free)
     free_vars = set(free_vars)
     for i in free_vars:
         x = zeros(len_x)
@@ -418,5 +432,5 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True):
         for k, j in not_free:
             x[j] = -1*d[k][0]
 
-        res.append(x.copy())
+        res.append(x)
     return res
