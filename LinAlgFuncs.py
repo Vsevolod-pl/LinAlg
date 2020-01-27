@@ -350,3 +350,18 @@ def rref(m, use_fractional=True, transpositions_allowed=True):
             if j != i:
                 m[j] = m[j] - m[i]*m[j, ind]
     return m
+
+
+def rank(m):
+    """
+    Calculates rank of matrix m by converting it into rref and counting nonzero rows
+    :param m: 2D Tensor
+    :return: int - rank of matrix
+    """
+    assert len(m.shape()) == 2, "Must be an 2D Matrix"
+    res = 0
+    for r in rref(m):
+        if max(r) != 0 or min(r) != 0:
+            res += 1
+    return res
+
