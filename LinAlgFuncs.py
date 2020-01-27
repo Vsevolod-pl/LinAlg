@@ -7,7 +7,7 @@ def random_tensor(shape, minval=-5, maxval=5):
     if len(shape) == 1:
         return Tensor([randint(minval, maxval) for i in range(shape[0])])
     else:
-        return Tensor([random_tensor(*shape[1:]) for i in range(shape[0])])
+        return Tensor([random_tensor(shape[1:]) for i in range(shape[0])])
 
 
 def mul(a):
@@ -105,18 +105,17 @@ class Tensor(list):
         maxlitem = maxLenItem if maxLenItem is not None else max([len(str(i)) for i in self.flatten_to_list()])
         tab = tab if tab is not None else 0
         if len(self.shape()) == 1:
-            return " "*tab + "["+", ".join([str(i)
-                                            + " "*(maxlitem - len(str(i))) for i in self]) + "]"
+            return " "*tab + "["+", ".join([" "*(maxlitem - len(str(i))) + str(i) for i in self]) + "]"
         else:
             c = max(len(self.shape()) - 1, 1)
             res = list()
             first = True
             for i in self:
                 if first:
-                    res.append(i.__repr__(maxlitem,tab+1))
+                    res.append(i.__repr__(maxlitem, tab+1))
                     first = False
                 else:
-                    res.append(i.__repr__(maxlitem,tab+1))
+                    res.append(i.__repr__(maxlitem, tab+1))
             s = ("," + "\n"*c).join(res)
             s = s.lstrip()
             return " "*tab + "[" + s + "]"
@@ -388,25 +387,36 @@ def rank(m):
     return res
 
 
-def solve_hsle(m):
+def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True):
     """
     Solves homogeneous system of linear equations Ax = 0
-    :param m: matrix A
-    :return: matrix of vector_solutions
+    :param transpositions_allowed: don't use transpositions while solving
+    :param use_fractional: using Fractional is more precise, but can't be used with variables
+    :param matrix: matrix A
+    :return: list of vector_solutions
     """
-    assert len(m.shape()) == 2, "Need 2D Matrix"
+    assert len(matrix.shape()) == 2, "Need 2D Matrix"
     free_vars = []
+    not_free = []
     res = []
-    m1 = rref(m).transpose2()
-    for i, r in enumerate(m1):
-        for j in r:
-            if j != 1 and j != 0:
+    len_x = matrix.shape()[1]
+    matrix_rref = rref(matrix, use_fractional, transpositions_allowed)
+    for i, row in enumerate(matrix_rref.transpose2()):
+        for j, el in enumerate(row):
+            if el == 1:
+                not_free.append((j, i))
+            elif el != 0:
                 free_vars.append(i)
                 break
-    free_vars = list(set(free_vars))
-    x = zeros(m.shape()[1])
+
+    free_vars = set(free_vars)
     for i in free_vars:
+        x = zeros(len_x)
         x[i] = 1
-        res.append(dot(m, x))
-        x[i] = 0
+        d = dot(matrix_rref, x)
+
+        for k, j in not_free:
+            x[j] = -1*d[k][0]
+
+        res.append(x.copy())
     return res
