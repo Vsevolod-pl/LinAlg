@@ -404,25 +404,18 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=F
     len_x = matrix.shape()[1]
     matrix_rref = rref(matrix, use_fractional, transpositions_allowed)
     for i, row in enumerate(matrix_rref.transpose2()):
+        free = True
         for j, el in enumerate(row):
-            if el == 1:
+            first = True
+            for k in range(j):
+                if matrix_rref[k][i]:
+                    first = False
+            if first and el != 0:
+                not_free.append((j, i))
+                free = False
+        if free:
+            free_vars.append(i)
 
-                first = True
-                for k in range(i):
-                    if matrix_rref[j][k] != 0:
-                        first = False
-                        break
-                first = 1
-
-                if first:
-                    not_free.append((j, i))
-                    #break
-                else:
-                    free_vars.append(i)
-                    #break
-            elif el != 0:
-                free_vars.append(i)
-                break
     if debug:
         print(free_vars, not_free)
     free_vars = set(free_vars)
