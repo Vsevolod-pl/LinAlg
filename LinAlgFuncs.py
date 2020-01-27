@@ -422,7 +422,6 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True):
             elif el != 0:
                 free_vars.append(i)
                 break
-    print(not_free)
     free_vars = set(free_vars)
     for i in free_vars:
         x = zeros(len_x)
