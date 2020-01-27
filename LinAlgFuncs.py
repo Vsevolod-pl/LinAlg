@@ -37,15 +37,15 @@ def I(n):
 
 
 def dot_m(a, b):
-    if a.shape()[1] == b.shape()[0] and len(a.shape()) == 2:
-        bt = b.transpose2()
-        width = a.shape()[0]
-        height = b.shape()[1]
-        res = zeros(width, height)
-        for i in range(width):
-            for j in range(height):
-                res[i, j] = dot_v(a[i], bt[j])
-        return res
+    assert a.shape()[1] == b.shape()[0] and len(a.shape()) == 2, "matrices must be equal size"
+    bt = b.transpose2()
+    width = a.shape()[0]
+    height = b.shape()[1]
+    res = zeros(width, height)
+    for i in range(width):
+        for j in range(height):
+            res[i, j] = dot_v(a[i], bt[j])
+    return res
 
 
 class Tensor(list):
@@ -315,7 +315,7 @@ def tensor_from_iterable(source):
         return Tensor(source)
 
 
-def rref(m, use_fractional=True, transpositions_allowed=True):
+def rref(m, use_fractional=True, transpositions_allowed=True, print_steps=False):
     """
     Reduced row echelon form
     :param m:
@@ -329,6 +329,11 @@ def rref(m, use_fractional=True, transpositions_allowed=True):
     dim1 = m.shape()[0]
     dim2 = m.shape()[1]
     for i in range(dim1):
+
+        if print_steps:
+            print(m)
+            print()
+
         first = 0
         ind = 0
 
@@ -336,6 +341,11 @@ def rref(m, use_fractional=True, transpositions_allowed=True):
             if m[i, j] != 0:
                 first = m[i, j]
                 ind = j
+                #m[i,j] = 1
+                break
+
+        if not first:
+            continue
 
         for j in range(dim2):
             if m[i, j] != 0:
@@ -343,8 +353,6 @@ def rref(m, use_fractional=True, transpositions_allowed=True):
                     m[i, j] = Fraction(m[i, j], first)
                 else:
                     m[i, j] /= first
-        if not first:
-            continue
 
         for j in range(dim1):
             if j != i:
