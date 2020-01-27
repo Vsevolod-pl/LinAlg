@@ -49,6 +49,26 @@ def dot_m(a, b):
     return res
 
 
+def dot(a, b):
+    assert isinstance(a, Tensor) and isinstance(b, Tensor), "Terms must be tensors"
+    c = len(a.shape()) - len(b.shape())
+    if c == 0:
+        if len(a.shape()) == 1:
+            return dot_v(a, b)
+        else:
+            return dot_m(a, b)
+    elif c > 0:
+        b = Tensor([b])
+        if a.shape()[1] == b.shape()[1]:
+            b = b.transpose2()
+        return dot_m(a, b)
+    else:
+        a = Tensor([a])
+        if a.shape()[0] == b.shape()[0]:
+            a = a.transpose2()
+        return dot_m(a, b)
+
+
 class Tensor(list):
     def __getitem__(self, key):
         if type(key) == int:
@@ -337,6 +357,7 @@ def rref(m, use_fractional=True, transpositions_allowed=True):
             if m[i, j] != 0:
                 first = m[i, j]
                 ind = j
+                break
 
         for j in range(dim2):
             if m[i, j] != 0:
@@ -366,3 +387,26 @@ def rank(m):
             res += 1
     return res
 
+
+def solve_hsle(m):
+    """
+    Solves homogeneous system of linear equations Ax = 0
+    :param m: matrix A
+    :return: matrix of vector_solutions
+    """
+    assert len(m.shape()) == 2, "Need 2D Matrix"
+    free_vars = []
+    res = []
+    m1 = rref(m).transpose2()
+    for i, r in enumerate(m1):
+        for j in r:
+            if j != 1 and j != 0:
+                free_vars.append(i)
+                break
+    free_vars = list(set(free_vars))
+    x = zeros(m.shape()[1])
+    for i in free_vars:
+        x[i] = 1
+        res.append(dot(m, x))
+        x[i] = 0
+    return res
