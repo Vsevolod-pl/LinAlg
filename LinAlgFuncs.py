@@ -389,7 +389,7 @@ def rank(m):
     return res
 
 
-def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True):
+def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=False):
     """
     Solves homogeneous system of linear equations Ax = 0
     :param transpositions_allowed: don't use transpositions while solving
@@ -412,16 +412,19 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True):
                     if matrix_rref[j][k] != 0:
                         first = False
                         break
+                first = 1
 
                 if first:
                     not_free.append((j, i))
-                    break
+                    #break
                 else:
                     free_vars.append(i)
-                    break
+                    #break
             elif el != 0:
                 free_vars.append(i)
                 break
+    if debug:
+        print(free_vars, not_free)
     free_vars = set(free_vars)
     for i in free_vars:
         x = zeros(len_x)
