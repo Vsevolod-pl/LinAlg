@@ -215,11 +215,4 @@ print("L1 ∩ L2 = ФСР D/F x = 0", G, sep="\n")
 
 x = Tensor(solve_hsle(G))
 print("базис L1 ∩ L2:", x)
-print("размерность:", rank(x))
-
-
-# In[ ]:
-
-
-
-
+print("размерность:", rank(x))=
