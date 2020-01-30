@@ -7,7 +7,7 @@
 from LinAlgFuncs import *
 
 
-# ## 1
+print("1")
 
 # In[ ]:
 
@@ -87,7 +87,7 @@ print("b1+b2+b3 - a:")
 print(b1+b2+b3-a)
 
 
-# ## 2
+print("/n2")
 
 # In[18]:
 
@@ -132,7 +132,7 @@ B = tensor_from_iterable((v1, [ 0, 1, 0, 0], [0, 0, 1, 0])) # дополним �
 print(B)
 
 
-# ## 3
+print("/n3")
 
 # In[24]:
 
@@ -156,7 +156,7 @@ A = Tensor(solve_hsle(B)) # записал решение в другую мат
 print(A)
 
 
-# ## 4
+print("/n4")
 
 # In[27]:
 
