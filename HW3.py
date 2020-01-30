@@ -191,7 +191,7 @@ print("размерность:", rank(A))
 
 B1 = tensor_from_iterable([a1,a2,a3,a4]) # записал по строкам
 D = Tensor(solve_hsle(B1)) # L1 = ФСР Dx=0
-print("L1 = ФСР Dx=0, D=", D, sep="\n")
+print("\nL1 = ФСР Dx=0, D=", D, sep="\n")
 
 
 # In[31]:
@@ -199,7 +199,7 @@ print("L1 = ФСР Dx=0, D=", D, sep="\n")
 
 B2 = tensor_from_iterable([b1,b2,b3,b4]) # записал по строкам
 F = Tensor(solve_hsle(B2)) # L2 = ФСР Fx=0
-print("L2 = ФСР Fx=0, F=", F, sep="\n")
+print("\nL2 = ФСР Fx=0, F=", F, sep="\n")
 
 
 # In[32]:
@@ -207,7 +207,7 @@ print("L2 = ФСР Fx=0, F=", F, sep="\n")
 
 #L1 ∩ L2 = ФСР D/F x = 0
 G = tensor_from_iterable((*D,*F))
-print("L1 ∩ L2 = ФСР D/F x = 0", G, sep="\n")
+print("\nL1 ∩ L2 = ФСР D/F x = 0", G, sep="\n")
 
 
 # In[33]:
