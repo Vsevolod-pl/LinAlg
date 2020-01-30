@@ -337,10 +337,11 @@ def tensor_from_iterable(source):
         return Tensor(source)
 
 
-def rref(m, use_fractional=True, transpositions_allowed=True):
+def rref(m, use_fractional=True, transpositions_allowed=True, debug=False):
     """
     Reduced row echelon form
-    :param m:
+    :param debug: if true, it will print hidden steps
+    :param m: 2D Matrix
     :param use_fractional: if in matrix there are only int numbers, it may provide better precision
     :param transpositions_allowed: don't use transpositions
     :return: return matrix in Reduced row echelon form
@@ -351,6 +352,9 @@ def rref(m, use_fractional=True, transpositions_allowed=True):
     dim1 = m.shape()[0]
     dim2 = m.shape()[1]
     for i in range(dim1):
+        if debug:
+            print(m)
+            print()
         first = 0
         ind = 0
 
@@ -375,15 +379,16 @@ def rref(m, use_fractional=True, transpositions_allowed=True):
     return m
 
 
-def rank(m):
+def rank(m, use_fractional=True):
     """
     Calculates rank of matrix m by converting it into rref and counting nonzero rows
+    :param use_fractional: if in matrix there are only int numbers, it may provide better precision
     :param m: 2D Tensor
     :return: int - rank of matrix
     """
     assert len(m.shape()) == 2, "Must be an 2D Matrix"
     res = 0
-    for r in rref(m):
+    for r in rref(m, use_fractional):
         if max(r) != 0 or min(r) != 0:
             res += 1
     return res
@@ -392,6 +397,7 @@ def rank(m):
 def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=False):
     """
     Solves homogeneous system of linear equations Ax = 0
+    :param debug: if true, it will print main positions
     :param transpositions_allowed: don't use transpositions while solving
     :param use_fractional: using Fractional is more precise, but can't be used with variables
     :param matrix: matrix A
@@ -407,8 +413,8 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=F
         free = True
         for j, el in enumerate(row):
             first = True
-            for k in range(j):
-                if matrix_rref[k][i]:
+            for k in range(i):
+                if matrix_rref[j][k]:
                     first = False
             if first and el != 0:
                 not_free.append((j, i))
