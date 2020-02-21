@@ -17,16 +17,16 @@ def mul(a):
     return m
 
 
-def zeros(*shape):
+def zeros(*shape, zero=0):
     if len(shape) == 1:
-        return Tensor([0 for i in range(shape[0])])
+        return Tensor([zero for i in range(shape[0])])
     else:
-        return Tensor([zeros(*shape[1:]) for i in range(shape[0])])
+        return Tensor([zeros(*shape[1:], zero=zero) for i in range(shape[0])])
 
 
 def dot_v(a, b):
     if a.shape() == b.shape() and len(a.shape()) == 1:
-        return sum([a[i]*b[i] for i in range(len(a))])
+        return sum([a[i] * b[i] for i in range(len(a))])
 
 
 def I(n):
@@ -69,73 +69,114 @@ def dot(a, b):
         return dot_m(a, b)
 
 
+def decartmul(*iters):
+    if len(iters) == 1:
+        yield from map(lambda x: (x,), iters[0])
+        return
+    for i in iters[0]:
+        yield from map(lambda x: (i,) + x, decartmul(*iters[1:]))
+
+
+def all_indices(slices):
+    yield from decartmul(*map(lambda x: range(x.start, x.stop, x.step), slices))
+
+
 class Tensor(list):
     def __getitem__(self, key):
         if type(key) == int:
             return super().__getitem__(key)
         elif isinstance(key, slice):
-            start = key.start if key.start is not None else 0
-            stop = key.stop if key.stop is not None else len(self)
-            step = key.step if key.step is not None else 1
-            return Tensor([self[i] for i in range(start, stop, step)])
-        elif len(key) == 1:
-            return self.__getitem__(key[0])
-        else:
-            return self.__getitem__(key[0]).__getitem__(key[1:])
+            return Tensor(super().__getitem__(key))
+        elif isinstance(key, tuple):
+            if len(key) == 1:
+                return self.__getitem__(key[0])
+            else:
+                if type(key[0]) == int:
+                    return self.__getitem__(key[0]).__getitem__(key[1:])
+                else:
+                    return Tensor([vec[key[1:]] for vec in self.__getitem__(key[0])])
+        elif isinstance(key, Tensor):
+            return Tensor([self[i] for i in key])
 
     def __setitem__(self, key, val):
         if type(key) == int:
-            super().__setitem__(key, val)
-            return self
+            if isinstance(self[key], Tensor) and isinstance(val, Tensor):
+                self_shape = self[key].shape()
+                val_shape = val.shape()
+                assert len(self_shape) >= len(val_shape),\
+                    "Can't broadcast tensor from shape " + str(val_shape) + " to " + str(self_shape)
+                if len(self_shape) == len(val_shape):
+                    assert self_shape == val_shape, "Can assign only same size tensors"
+                    super().__setitem__(key, val)
+                else:
+                    for i in range(len(self[key])):
+                        self[key][i] = val
+            elif not isinstance(self[key], Tensor) and not isinstance(val, Tensor):
+                super().__setitem__(key, val)
+            elif isinstance(self[key], Tensor) and not isinstance(val, Tensor):
+                super().__setitem__(key, zeros(*self[key].shape(), zero=val))
+            else:
+                raise ValueError("Can't broadcast tensor "+str(val)+" to scalar")
         elif isinstance(key, slice):
-            start = key.start if key.start is not None else 0
-            stop = key.stop if key.stop is not None else len(self)
-            step = key.step if key.step is not None else 1
-            for i in range(start, stop, step):
+            if isinstance(val, Tensor):
+                super().__setitem__(key, val)
+            else:
+                super().__setitem__(key, zeros(*self[key].shape(), zero=val))
+        elif isinstance(key, tuple):
+            if len(key) == 1:
+                self[key[0]] = val
+            else:
+                if type(key[0]) == int:
+                    self[key[0]][key[1:]] = val
+                else:
+                    if isinstance(val, Tensor):
+                        for i, vec in enumerate(self[key[0]]):
+                            vec[key[1:]] = val[i]
+                    else:
+                        for vec in self[key[0]]:
+                            vec[key[1:]] = val
+        elif isinstance(key, Tensor):
+            for i in key:
                 self[i] = val
-            return self
-        elif len(key) == 1:
-            return self.__setitem__(key[0], val)
-        else:
-            self.__setitem__(key[0], self.
-                             __getitem__(key[0]).__setitem__(key[1:], val))
-            return self
 
-    def __repr__(self, maxLenItem = None, tab=None):
-        maxlitem = maxLenItem if maxLenItem is not None else max([len(str(i)) for i in self.flatten_to_list()])
+    def __repr__(self, max_len_item=None, tab=None):
+        maxlitem = max_len_item if max_len_item is not None else max([len(str(i)) for i in self.flatten_to_list()])
         tab = tab if tab is not None else 0
         if len(self.shape()) == 1:
-            return " "*tab + "["+", ".join([" "*(maxlitem - len(str(i))) + str(i) for i in self]) + "]"
+            return " " * tab + "[" + ", ".join([" " * (maxlitem - len(str(i))) + str(i) for i in self]) + "]"
         else:
             c = max(len(self.shape()) - 1, 1)
             res = list()
             first = True
             for i in self:
                 if first:
-                    res.append(i.__repr__(maxlitem, tab+1))
+                    res.append(i.__repr__(maxlitem, tab + 1))
                     first = False
                 else:
-                    res.append(i.__repr__(maxlitem, tab+1))
-            s = ("," + "\n"*c).join(res)
+                    res.append(i.__repr__(maxlitem, tab + 1))
+            s = ("," + "\n" * c).join(res)
             s = s.lstrip()
-            return " "*tab + "[" + s + "]"
+            return " " * tab + "[" + s + "]"
 
     def __add__(self, a):
-        my_shape = self.shape()
-        a_shape = a.shape()
+        if isinstance(a, Tensor):
+            my_shape = self.shape()
+            a_shape = a.shape()
 
-        assert a_shape == my_shape, "Second tensor must be same size"
+            assert a_shape == my_shape, "Second tensor must be same size"
 
-        if len(a_shape) == 1:
-            return Tensor([self[i] + a[i] for i in range(a_shape[0])])
+            if len(a_shape) == 1:
+                return Tensor([self[i] + a[i] for i in range(a_shape[0])])
+            else:
+                return Tensor([self[i].__add__(a[i]) for i in range(a_shape[0])])
         else:
-            return Tensor([self[i].__add__(a[i]) for i in range(a_shape[0])])
+            return Tensor([i + a for i in self])
 
     def __sub__(self, other):
-        return self+-1*other
+        return self + -1 * other
 
     def __rsub__(self, other):
-        return other+-1*self
+        return other + -1 * self
 
     def __mul__(self, m):
         shape = self.shape()
@@ -187,13 +228,13 @@ class Tensor(list):
         if len(self.shape()) == 1:
             return [i for i in self]
         else:
-            res = []	
+            res = []
             for i in self:
                 res += i.flatten_to_list()
             return res
 
 
-def to_triangular(a, use_fractional=False):
+def to_triangular(a, use_fractional=True):
     success = True
     permutations = 0
     a = a.copy()
@@ -230,11 +271,11 @@ def det_triangular(a, s=0):
     res = 1
     for i in range(n):
         res *= a[i, i]
-    return res * ((-1)**s)
+    return res * ((-1) ** s)
 
 
-def det(a):
-    a, s, success = to_triangular(a)
+def det(a, use_fractional=True):
+    a, s, success = to_triangular(a, use_fractional=use_fractional)
     if success:
         return det_triangular(a, s)
     else:
@@ -243,9 +284,9 @@ def det(a):
 
 def cut_ij(mat, i, j):
     n, m = mat.shape()
-    res = zeros(n-1, m-1)
-    for x in range(n-1):
-        for y in range(m-1):
+    res = zeros(n - 1, m - 1)
+    for x in range(n - 1):
+        for y in range(m - 1):
             xm = x
             ym = y
             if x >= i:
@@ -262,18 +303,19 @@ def det_by_minors(a, j=0):
     if n == 1:
         return a[0, 0]
     elif n == 2:
-        return a[0, 0]*a[1, 1] - a[1, 0]*a[0, 1]
+        return a[0, 0] * a[1, 1] - a[1, 0] * a[0, 1]
     elif n == 3:
-        return a[0, 0]*a[1, 1]*a[2, 2]+a[0, 1]*a[1, 2]*a[2, 0]+a[0, 2]*a[1, 0]*a[2, 1]-a[0, 2]*a[1, 1]*a[2, 0]\
-               - a[0, 1]*a[1, 0]*a[2, 2]-a[0, 0]*a[1, 2]*a[2, 1]
+        return a[0, 0] * a[1, 1] * a[2, 2] + a[0, 1] * a[1, 2] * a[2, 0] + a[0, 2] * a[1, 0] * a[2, 1] - a[0, 2] * a[
+            1, 1] * a[2, 0] \
+               - a[0, 1] * a[1, 0] * a[2, 2] - a[0, 0] * a[1, 2] * a[2, 1]
     else:
         res = 0
         for i in range(n):
-            res += a[i, j] * ((-1)**(i+j)) * det_by_minors(cut_ij(a, i, j))
+            res += a[i, j] * ((-1) ** (i + j)) * det_by_minors(cut_ij(a, i, j))
         return res
 
 
-def inverse_Gauss(a, use_fractional=False):
+def inverse_Gauss(a, use_fractional=True):
     n = a.shape()[0]
     assert n == a.shape()[1], "Need square Matrix"
     det_a = det(a)
@@ -282,7 +324,7 @@ def inverse_Gauss(a, use_fractional=False):
     return solve_Gauss(a, e, use_fractional)
 
 
-def solve_Gauss(a, b, use_fractional=False):
+def solve_Gauss(a, b, use_fractional=True):
     n = a.shape()[0]
     assert n == a.shape()[1], "Need square Matrix"
     det_a = det(a)
@@ -375,7 +417,7 @@ def rref(m, use_fractional=True, transpositions_allowed=True, debug=False):
 
         for j in range(dim1):
             if j != i:
-                m[j] = m[j] - m[i]*m[j, ind]
+                m[j] = m[j] - m[i] * m[j, ind]
     return m
 
 
@@ -431,7 +473,7 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=F
         d = dot(matrix_rref, x)
 
         for k, j in not_free:
-            x[j] = -1*d[k][0]
+            x[j] = -1 * d[k][0]
 
         res.append(x)
     return res
