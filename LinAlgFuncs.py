@@ -476,4 +476,4 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=F
             x[j] = -1 * d[k][0]
 
         res.append(x)
-    return res
+    return Tensor(res)
