@@ -30,6 +30,11 @@ def dot_v(a, b):
 
 
 def I(n):
+    """
+    Identity matrix
+    :param n: size of matrix
+    :return: Identity matrix n × n
+    """
     res = zeros(n, n)
     for i in range(n):
         res[i, i] = 1
@@ -140,6 +145,8 @@ class Tensor(list):
                 self[i] = val
 
     def __repr__(self, max_len_item=None, tab=None):
+        if len(self) == 0:
+            return "[]"
         maxlitem = max_len_item if max_len_item is not None else max([len(str(i)) for i in self.flatten_to_list()])
         tab = tab if tab is not None else 0
         if len(self.shape()) == 1:
@@ -188,6 +195,8 @@ class Tensor(list):
     __rmul__ = __mul__
 
     def shape(self):
+        if len(self) == 0:
+            return (0,)
         if type(self[0]) != type(self):
             return [len(self)]
         else:
@@ -325,6 +334,13 @@ def inverse_Gauss(a, use_fractional=True):
 
 
 def solve_Gauss(a, b, use_fractional=True):
+    """
+    Solves matrix equation AX=B
+    :param a: 2D square matrix
+    :param b: 1D or 2D tensor
+    :param use_fractional: using Fractional is more precise, but can't be used with variables
+    :return: returns Tensor (x) of shape b, and ax=b
+    """
     n = a.shape()[0]
     assert n == a.shape()[1], "Need square Matrix"
     det_a = det(a)
@@ -436,6 +452,34 @@ def rank(m, use_fractional=True):
     return res
 
 
+def split_to_free_and_main_variables(matrix, use_fractional=True, transpositions_allowed=True):
+    """
+    Return pair of lists. First are indices of columns of free vars.
+    Second - list of coordinates(pairs - first is column, second - row) of main vars
+    :param matrix: 2D matrix
+    :param use_fractional: use_fractional: using Fractional is more precise, but can't be used with variables
+    :param transpositions_allowed: transpositions_allowed: don't use transpositions while solving
+    :return: pair of lists
+    """
+    assert len(matrix.shape()) == 2, "Need 2D Matrix"
+    free_vars = []
+    not_free = []
+    matrix_rref = rref(matrix, use_fractional, transpositions_allowed)
+    for i, column in enumerate(matrix_rref.transpose2()):
+        free = True
+        for j, el in enumerate(column):
+            first = True
+            for k in range(i):
+                if matrix_rref[j][k]:
+                    first = False
+            if first and el != 0:
+                not_free.append((j, i))
+                free = False
+        if free:
+            free_vars.append(i)
+    return free_vars, not_free
+
+
 def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=False):
     """
     Solves homogeneous system of linear equations Ax = 0
@@ -451,9 +495,9 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=F
     res = []
     len_x = matrix.shape()[1]
     matrix_rref = rref(matrix, use_fractional, transpositions_allowed)
-    for i, row in enumerate(matrix_rref.transpose2()):
+    for i, column in enumerate(matrix_rref.transpose2()):
         free = True
-        for j, el in enumerate(row):
+        for j, el in enumerate(column):
             first = True
             for k in range(i):
                 if matrix_rref[j][k]:
