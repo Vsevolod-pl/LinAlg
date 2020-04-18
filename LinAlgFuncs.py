@@ -144,23 +144,30 @@ class Tensor(list):
             for i in key:
                 self[i] = val
 
-    def __repr__(self, max_len_item=None, tab=None):
+    def __repr__(self, max_len_item=None, tab=None, repr_items=False):
         if len(self) == 0:
             return "[]"
-        maxlitem = max_len_item if max_len_item is not None else max([len(str(i)) for i in self.flatten_to_list()])
+        if repr_items:
+            maxlitem = max_len_item if max_len_item is not None else max([len(repr(i)) for i in self.flatten_to_list()])
+        else:
+            maxlitem = max_len_item if max_len_item is not None else max([len(str(i)) for i in self.flatten_to_list()])
         tab = tab if tab is not None else 0
         if len(self.shape()) == 1:
-            return " " * tab + "[" + ", ".join([" " * (maxlitem - len(str(i))) + str(i) for i in self]) + "]"
+            if repr_items:
+                return " " * tab + "[" + ", ".join([" " * (maxlitem - len(repr(i))) + repr(i) for i in self]) + "]"
+            else:
+                return " " * tab + "[" + ", ".join([" " * (maxlitem - len(str(i))) + str(i) for i in self]) + "]"
+
         else:
             c = max(len(self.shape()) - 1, 1)
             res = list()
             first = True
             for i in self:
                 if first:
-                    res.append(i.__repr__(maxlitem, tab + 1))
+                    res.append(i.__repr__(maxlitem, tab + 1, repr_items = repr_items))
                     first = False
                 else:
-                    res.append(i.__repr__(maxlitem, tab + 1))
+                    res.append(i.__repr__(maxlitem, tab + 1, repr_items = repr_items))
             s = ("," + "\n" * c).join(res)
             s = s.lstrip()
             return " " * tab + "[" + s + "]"
@@ -193,6 +200,9 @@ class Tensor(list):
             return Tensor([i.__mul__(m) for i in self])
 
     __rmul__ = __mul__
+
+    def __neg__(self):
+        return self*-1
 
     def shape(self):
         if len(self) == 0:
@@ -395,7 +405,7 @@ def tensor_from_iterable(source):
         return Tensor(source)
 
 
-def rref(m, use_fractional=True, transpositions_allowed=True, debug=False):
+def rref(m, use_fractional=True, transpositions_allowed=True, debug=False, debug_frac=True):
     """
     Reduced row echelon form
     :param debug: if true, it will print hidden steps
@@ -411,7 +421,10 @@ def rref(m, use_fractional=True, transpositions_allowed=True, debug=False):
     dim2 = m.shape()[1]
     for i in range(dim1):
         if debug:
-            print(m)
+            if debug_frac:
+                print(m.__repr__(repr_items=True))
+            else:
+                print(m)
             print()
         first = 0
         ind = 0
@@ -521,3 +534,23 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=F
 
         res.append(x)
     return Tensor(res)
+
+def ortagonalize(e, debug = False, use_fractional = 1):
+    f = []
+    for i in range(len(vs)):
+        fi = e[i]
+        for j in range(i):
+            if use_fractional:
+                if debug:
+                    print(" ", Fraction(dot(e[i], f[j]), dot(f[j], f[j])), f[j])
+                    print(" ", Fraction(dot(e[i], f[j]), dot(f[j], f[j]))*f[j])
+                fi = fi-Fraction(dot(e[i], f[j]), dot(f[j], f[j]))*f[j]
+            else:
+                if debug:
+                    print(" ", (dot(e[i], f[j])/dot(f[j], f[j]))*f[j])
+                fi = fi - (dot(e[i], f[j])/dot(f[j], f[j]))*f[j]
+        if debug:
+            print(fi)
+            print()
+        f.append(fi)
+    return f
