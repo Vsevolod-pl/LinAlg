@@ -535,9 +535,10 @@ def solve_hsle(matrix, use_fractional=True, transpositions_allowed=True, debug=F
         res.append(x)
     return Tensor(res)
 
-def ortagonalize(e, debug = False, use_fractional = 1):
+
+def orthogonalize(e, debug=False, use_fractional=1):
     f = []
-    for i in range(len(vs)):
+    for i in range(len(e)):
         fi = e[i]
         for j in range(i):
             if use_fractional:
@@ -552,5 +553,28 @@ def ortagonalize(e, debug = False, use_fractional = 1):
         if debug:
             print(fi)
             print()
+        is_zero = True
+        for el in fi:
+            if el != 0:
+                is_zero = False
+                break
+        if not is_zero:
+            f.append(fi)
+    return f
+
+
+def orthogonalize_normalize(e, use_fractional=0, sqrt=lambda x: x**(0.5)):
+    f = []
+    for i in range(len(e)):
+        fi = e[i]
+        for j in range(i):
+            if use_fractional:
+                fi = fi - dot(e[i], f[j])*f[j]
+            else:
+                fi = fi - (dot(e[i], f[j]))*f[j]
+        if use_fractional:
+            fi = fi*Fraction(1, sqrt(dot(fi, fi)))
+        else:
+            fi = fi*(1/sqrt(dot(fi, fi)))
         f.append(fi)
     return f
