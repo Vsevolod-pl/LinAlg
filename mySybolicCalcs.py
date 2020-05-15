@@ -132,7 +132,13 @@ class ExpressionSum:
             res.const = 0
             res.clear()
             return res
+        elif isinstance(other, ExpressionSum):
+            res = 0
+            for var in other.vars:
+                res += self.copy()*var
+            return res
         else:
+            print(self, other)
             raise NotImplementedError
 
     __rmul__ = __mul__
