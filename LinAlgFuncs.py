@@ -29,6 +29,16 @@ def dot_v(a, b):
         return sum([a[i] * b[i] for i in range(len(a))])
 
 
+def cross(a, b):
+    assert len(a.shape()) == 1 and a.shape()[0] == 3
+    assert len(b.shape()) == 1 and b.shape()[0] == 3
+    return Tensor([
+        a[1]*b[2] - a[2]*b[1],
+        a[2]*b[0] - a[0]*b[2],
+        a[0]*b[1] - a[1]*b[0]
+    ])
+
+
 def I(n):
     """
     Identity matrix

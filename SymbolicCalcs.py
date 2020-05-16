@@ -6,7 +6,6 @@ class Variable:
         self.name = name
 
     def __eq__(self, other):
-        #print(other)
         if isinstance(other, Variable):
             return other.name == self.name
         return False
@@ -29,28 +28,19 @@ class Variable:
                     r = other.copy()
                     r.const += 1
                     return r
+        elif isinstance(other, Number):
+            return ExpressionSum([self, ], other)
+        if other.can_add(self):
+            return other.__add__(self)
         return ExpressionSum([self, ]) + other
 
     __radd__ = __add__
 
-    def __mul__(self, other):
-        if isinstance(other, ExpressionPower):
-            if other.var == self:
-                r = other.copy()
-                r.power += 1
-                return r
-        elif isinstance(other, Variable) and other == self:
-            return ExpressionPower(self, 2)
-        elif other == 1:
-            return self
-        elif other == 0:
-            return 0
-        return ExpressionMul([self, ])*other
-
-    __rmul__ = __mul__
-
     def __sub__(self, other):
         return self.__add__(-1*other)
+
+    def __rsub__(self, other):
+        return -1*(self - other)
 
     def can_add(self, other):
         if isinstance(other, Variable):
@@ -64,10 +54,32 @@ class Variable:
                     return True
         return False
 
+    def __mul__(self, other):
+        if isinstance(other, ExpressionPower):
+            if other.var == self:
+                r = other.copy()
+                r.power += 1
+                return r
+        elif isinstance(other, Variable) and other.name == self.name:
+            return ExpressionPower(self, 2)
+        elif other == 1:
+            return self
+        elif other == 0:
+            return 0
+        elif isinstance(other, Number):
+            return ExpressionMul([self, ], other)
+        if other.can_mul(self):
+            return other.__mul__(self)
+        return ExpressionMul([self, ])*other
+
+    __rmul__ = __mul__
+
     def can_mul(self, other):
         if isinstance(other, ExpressionPower):
             if other.var == self:
                 return True
+        elif isinstance(other, Variable):
+            return other.name == self.name
         elif other == 1:
             return True
         elif other == 0:
@@ -140,10 +152,14 @@ class ExpressionSum:
         return res
 
     def __mul__(self, other):
+        if other == 0:
+            return 0
+        elif other == 1:
+            return self.copy()
         res = 0
         for var in self.variables:
-            res = res + var * other
-        res = res + self.const*other
+            res = res + other * var
+        res = res + other * self.const
         return res
 
     __rmul__ = __mul__
@@ -158,7 +174,7 @@ class ExpressionMul:
         self.variables = variables
 
     def copy(self):
-        return ExpressionMul(self.variables.copy(), self.const)
+        return ExpressionMul([var.copy() for var in self.variables], self.const)
 
     def __mul__(self, other):
         res = self.copy()
@@ -201,9 +217,47 @@ class ExpressionMul:
         return res
 
     def can_add(self, other):
+        if other == 0:
+            return True
+        if len(self.variables) == 1:
+            if isinstance(other, Variable) or isinstance(other, ExpressionPower):
+                return self.variables[0].can_add(other) or other.can_add(self.variables[0])
+        if isinstance(other, ExpressionMul) and len(self.variables) == len(other.variables):
+            can_add = True
+            for var in self.variables:
+                can_add_var = False
+                for othervar in other.variables:
+                    can_add_var = can_add_var or (var.can_add(othervar) or othervar.can_add(var))
+                    if can_add_var:
+                        break
+                can_add = can_add and can_add_var
+                if not can_add:
+                    break
+            return can_add
         return False
 
     def __add__(self, other):
+        if other == 0:
+            return self.copy()
+        if len(self.variables) == 1:
+            if isinstance(other, Variable) or isinstance(other, ExpressionPower):
+                if self.variables[0].can_add(other) or other.can_add(self.variables[0]):
+                    return (self.variables[0].copy() + other.copy())*(self.const + 1)
+        if isinstance(other, ExpressionMul) and len(self.variables) == len(other.variables):
+            can_add = True
+            for var in self.variables:
+                can_add_var = False
+                for othervar in other.variables:
+                    can_add_var = can_add_var or (var.can_add(othervar) or othervar.can_add(var))
+                    if can_add_var:
+                        break
+                can_add = can_add and can_add_var
+                if not can_add:
+                    break
+            if can_add:
+                res = self.copy()
+                res.const += other.const
+                return res
         return ExpressionSum([self, ]) + other
 
     __radd__ = __add__
@@ -223,6 +277,8 @@ class ExpressionPower:
             return False
 
     def copy(self):
+        if isinstance(self.var, Number):
+            return ExpressionPower(self.var, self.power)
         return ExpressionPower(self.var.copy(), self.power)
 
     def __mul__(self, other):
@@ -235,6 +291,10 @@ class ExpressionPower:
             return self.copy()
         elif other == 0:
             return 0
+        elif isinstance(other, Number):
+            return ExpressionMul([self.copy(), ], other)
+        if other.can_mul(self):
+            return other.__mul__(self)
         return ExpressionMul([self.copy()])*other
 
     __rmul__ = __mul__
